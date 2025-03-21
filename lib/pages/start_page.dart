@@ -1,5 +1,6 @@
 import 'package:app/bloc/settings/settings_bloc.dart';
 import "package:flutter/material.dart";
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:app/pages/home_page.dart';
 
@@ -8,6 +9,8 @@ class StartPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     String storagePath = context.select(
       (SettingsBloc value) => value.state.storagePath,
     );
@@ -68,9 +71,8 @@ class StartPage extends StatelessWidget {
             Spacer(),
             SizedBox(width: double.infinity,
               child: FilledButton(
-                  
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: storagePath==""?null:() {
+                    Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
                       builder: (context) => HomePage(),

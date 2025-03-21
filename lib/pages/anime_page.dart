@@ -1,9 +1,14 @@
+import 'dart:io';
+
 import 'package:app/bloc/anime/anime_bloc.dart';
+import 'package:app/bloc/home/home_bloc.dart';
 import 'package:app/bloc/pahe/pahe_bloc.dart';
 import 'package:app/models/episode.dart';
 import 'package:app/models/pahe.dart';
+import 'package:app/repository/home_repo.dart';
 import 'package:app/repository/pahe_repo.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class AnimePage extends StatefulWidget {
@@ -92,10 +97,11 @@ class _AnimePageState extends State<AnimePage> {
                 };
                 Navigator.of(context).pushReplacement(MaterialPageRoute(
                     builder: (context) => BlocProvider(
-                        create: (context) => AnimeBloc(repo: repo),
-                        child: AnimePage(
-                          pahe: Pahe(data: data),
-                        ))));
+                      create: (context) => AnimeBloc(repo: repo),
+                      child: AnimePage(
+                        pahe: Pahe(data: data),
+                      ),
+                    )));
               },
               leading: img,
               tileColor: Colors.black,
@@ -110,6 +116,7 @@ class _AnimePageState extends State<AnimePage> {
         children: lstChildren,
       );
     }
+    
     if (state.recommends.isNotEmpty) {
       List<Widget> gridChildren = [];
       for (var recommend in state.recommends) {
@@ -158,6 +165,8 @@ class _AnimePageState extends State<AnimePage> {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     AnimeBloc bloc = context.read<AnimeBloc>();
     if (tabContents.isEmpty) {
       bloc.add(StartAniPage(url: widget.pahe.animeSession));
@@ -177,6 +186,7 @@ class _AnimePageState extends State<AnimePage> {
               );
             case PaheStatus.done:
               tabs(state);
+              var repo = context.read<HomeRepo>();
               return DefaultTabController(
                   length: tabContents.length,
                   child: CustomScrollView(
@@ -214,8 +224,11 @@ class _AnimePageState extends State<AnimePage> {
                                 ? 5
                                 : MediaQuery.of(context).size.width ~/ 350,
                         children: [
-                          for(var data in state.episodes??[])
-                          Episode(pahe: data)
+                          for (var data in state.episodes ?? [])
+                            Episode(
+                              pahe: data,
+                              title: state.title,
+                            )
                         ],
                       )
                     ],
@@ -227,85 +240,49 @@ class _AnimePageState extends State<AnimePage> {
   }
 }
 
-class Poster extends StatefulWidget {
+class Poster extends StatelessWidget {
   final AnimeState state;
   const Poster({
     super.key,
     required this.state,
   });
 
-  @override
-  State<Poster> createState() => _PosterState();
-}
-
-class _PosterState extends State<Poster> {
-  double? _imageHeight;
-  bool _imageLoaded = false;
-
-  void setHeight(int height) {
-    if (mounted) {
-      if (_imageHeight == null) {
-        setState(() {
-          _imageHeight = height.toDouble();
-        });
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
+    var bloc = context.read<HomeBloc>();
+    double maxHeight =Platform.isAndroid?600:700;
     return Stack(
       alignment: Alignment.bottomCenter,
       children: [
         ConstrainedBox(
           constraints: BoxConstraints(
-            maxHeight: 700,
+            maxHeight: maxHeight,
           ),
-          child: Image.network(
-            widget.state.image,
-            fit: BoxFit.cover,
-            loadingBuilder: (context, child, loadingProgress) {
-              if ((((child as Semantics).child as RawImage).image?.height ??
-                      0) >
-                  0) {
-                _imageLoaded = true;
-              } else {
-                _imageLoaded = false;
-              }
-              if (_imageLoaded && _imageHeight == null) {
-                final semImg = child as Semantics;
-                final imge = semImg.child as RawImage;
-                int height = imge.image?.height ?? 0;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  setHeight(height);
-                });
-              }
-              // if(loadingProgress?.cumulativeBytesLoaded==(loadingProgress?.expectedTotalBytes??1)){_imageLoaded=true;}else{_imageLoaded=false;}
-              return loadingProgress == null ? child : SizedBox();
-            },
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Image.memory(state.image),
           ),
         ),
-        _imageHeight != null
-            ? Container(
+          Container(
                 decoration: BoxDecoration(
                     gradient: LinearGradient(
                         colors: [Colors.transparent, Colors.black],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter)),
                 width: MediaQuery.of(context).size.width,
-                height: (_imageHeight ?? 0) > 700 ? 700 : _imageHeight,
-              )
-            : SizedBox(),
+                height: state.imgHeight> maxHeight ? maxHeight : state.imgHeight,
+              ),
         Column(
           children: [
             Text(
-              widget.state.title,
+              state.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 20),
             ),
             Text(
-              widget.state.subtitle,
+              state.subtitle,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 20.0, color: Colors.grey),
@@ -313,10 +290,16 @@ class _PosterState extends State<Poster> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                IconButton(
-                  onPressed: () {},
-                  icon: Icon(Icons.favorite_outline),
-                  color: Colors.blue,
+                BlocBuilder<HomeBloc,HomeState>(
+                  builder:(context,homeState){
+                    // print(homeState);
+                    return IconButton(
+                    onPressed: () {
+                      bloc.add(AddHomeItem(state: state));
+                    },
+                    icon: Icon(homeState.homeInfos.containsKey(state.title)?Icons.favorite:Icons.favorite_outline),
+                    color: Colors.blue,
+                  );},
                 )
               ],
             )

@@ -4,7 +4,6 @@ import 'package:app/models/pahe.dart';
 import 'package:app/pages/anime_page.dart';
 import 'package:app/repository/pahe_repo.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 
 class SearchDel extends SearchDelegate {
@@ -30,6 +29,7 @@ class SearchDel extends SearchDelegate {
   Widget? buildLeading(BuildContext context) {
     return IconButton(
         onPressed: () {
+          searchList.clear();
           Navigator.of(context).pop();
         },
         icon: Icon(Icons.arrow_back));
@@ -59,7 +59,6 @@ class SearchDel extends SearchDelegate {
                 leading: img,
                 title: title,
                 onTap: () {
-                  
                   var repo = context.read<PaheRepo>();
                   Map info = {
                     "anime_title": data['title'],
@@ -69,10 +68,21 @@ class SearchDel extends SearchDelegate {
                     'anime_session': data['session'],
                     'session': ""
                   };
-                  close(context,'');
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => BlocProvider(
-                        create: (context) => AnimeBloc(repo: repo),
-                      child: AnimePage(pahe: Pahe(data: info),))));
+                  close(context, '');
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => MultiBlocProvider(
+                                  providers: [
+                                    BlocProvider(
+                                      create: (context) =>
+                                          AnimeBloc(repo: repo),
+                                    ),
+                                    BlocProvider.value(value: bloc)
+                                  ],
+                                  child: AnimePage(
+                                    pahe: Pahe(data: info),
+                                  ))));
                 },
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,9 +102,9 @@ class SearchDel extends SearchDelegate {
   @override
   Widget buildSuggestions(BuildContext context) {
     return ListView.builder(
-            itemCount: searchList.length,
-            itemBuilder: (context, index) {
-              return searchList[index];
-            });
+        itemCount: searchList.length,
+        itemBuilder: (context, index) {
+          return searchList[index];
+        });
   }
 }

@@ -19,3 +19,7 @@ class GetSearch extends PaheEvent{
   final String searchTerm;
   GetSearch({required this.searchTerm});
 }
+
+class Update extends PaheEvent{
+  
+}

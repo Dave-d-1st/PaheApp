@@ -1,10 +1,12 @@
 part of 'anime_bloc.dart';
 class AnimeState {
   final PaheStatus status;
-  final String image;
+  final Uint8List image;
+  final String imageUrl;
   final String title;
   final String subtitle;
   final Map summary;
+  final double imgHeight;
   final List recommends;
   final PaheRepo repo;
   final Map relations;
@@ -14,9 +16,11 @@ class AnimeState {
   final BeautifulSoup soup;
   static final RegExp comp = RegExp(r'(\d+|\?) (Episodes|Episode) \((.+)\)');
 
-  AnimeState({required this.repo, this.status = PaheStatus.searching,this.episodes,this.id,this.session}):
+  AnimeState({required this.repo, this.status = PaheStatus.searching,this.episodes,this.id,this.session}) :
     soup = repo.soup,
-    image = repo.soup.find('div', class_: "anime-poster")?.find('img')?['data-src']??'',
+    imageUrl = repo.soup.find('div', class_: "anime-poster")?.find('img')?['data-src']??'',
+    imgHeight = repo.imgHeight,
+    image = repo.image,
     title = repo.soup.find('div', class_: 'title-wrapper')?.h1?.find("span")?.text ??
               '',
     subtitle =

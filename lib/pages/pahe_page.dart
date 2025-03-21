@@ -4,6 +4,7 @@ import 'package:app/models/pahe.dart';
 import 'package:app/models/search_bar.dart';
 import 'package:app/repository/pahe_repo.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '';
 
@@ -14,20 +15,24 @@ class PahePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     PaheBloc bloc = context.read<PaheBloc>();
     bloc.add(StartPage());
     if (!controllerListening) {
       controller.addListener(() {
         if (controller.offset >=
             (controller.position.maxScrollExtent * 3 / 4)) {
-              print("Ran");
           bloc.add(StartPage());
           controllerListening = true;
         }
       });
     }
-    print(controller);
-    return BlocBuilder<PaheBloc, PaheState>(builder: (context, state) {
+    return BlocBuilder<PaheBloc, PaheState>(
+      buildWhen: (previous, current) {
+        return previous.episodeInfos!=current.episodeInfos;
+      },
+      builder: (context, state) {
       WidgetsBinding.instance.addPostFrameCallback((d){
         if(state.status==PaheStatus.done){
           if(controller.offset==controller.position.maxScrollExtent){
@@ -47,7 +52,6 @@ class PahePage extends StatelessWidget {
             ],
           ),
           body: Builder(builder: (context) {
-            print(state.status);
             switch (state.status) {
               case PaheStatus.searching:
                 return Center(child: CircularProgressIndicator());

@@ -1,17 +1,29 @@
 import 'dart:math';
 
 import 'package:app/bloc/anime/anime_bloc.dart';
+import 'package:app/bloc/home/home_bloc.dart';
+import 'package:app/bloc/pahe/pahe_bloc.dart';
+import 'package:app/bloc/video/video_bloc.dart';
 import 'package:app/models/pahe.dart';
 import 'package:app/pages/anime_page.dart';
+import 'package:app/pages/video_page.dart';
+import 'package:app/repository/home_repo.dart';
 import 'package:app/repository/pahe_repo.dart';
+import 'package:app/repository/video_repo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive/hive.dart';
 
 class Episode extends StatelessWidget {
-  const Episode({super.key, required this.pahe});
+  const Episode({super.key, required this.pahe, this.title});
   final Pahe pahe;
+  final String? title;
   @override
   Widget build(BuildContext context) {
+    Box box = context.select<PaheBloc, Box>(
+      (value) => value.state.box,
+    );
+
     return SizedBox(
       child: Stack(
         alignment: Alignment.bottomRight,
@@ -20,7 +32,28 @@ class Episode extends StatelessWidget {
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
               onTap: () {
-                print("${pahe.animeSession}/${pahe.episodeSession}");
+                var repo = VideoRepo();
+                var bboc = context.read<PaheBloc>();
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => RepositoryProvider.value(
+                              value: repo,
+                              child: MultiBlocProvider(
+                                providers: [
+                                  BlocProvider(
+                                    create: (context) => VideoBloc(repo: repo),
+                                  ),
+                                  BlocProvider.value(
+                                    value: bboc,
+                                  ),
+                                ],
+                                child: VideoPage(
+                                  session:
+                                      "${pahe.animeSession}/${pahe.episodeSession}",
+                                ),
+                              ),
+                            )));
               },
               child: Image.network(
                 pahe.imageUrl,
@@ -34,7 +67,7 @@ class Episode extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Title(pahe: pahe),
-                Text("${pahe.episode}",
+                Text(pahe.episode2==0?"${pahe.episode}":"${pahe.episode}-${pahe.episode2}",
                     style: TextStyle(shadows: [
                       Shadow(
                         blurRadius: 3.0,
@@ -55,6 +88,14 @@ class Episode extends StatelessWidget {
                 IconButton(onPressed: () {}, icon: Icon(Icons.download))
               ],
             ),
+          ),
+          LinearProgressIndicator(
+            value: (box.get("${title ?? pahe.title} - ${pahe.episode}",
+                    defaultValue: {'duration': 0})['duration']) /
+                (box.get("${title ?? pahe.title} - ${pahe.episode}",
+                    defaultValue: {'total': 1})['total']),
+            color: Colors.red,
+            backgroundColor: Colors.transparent,
           )
         ],
       ),
@@ -98,10 +139,15 @@ class _TitleState extends State<Title> {
         : TextButton(
             onPressed: () {
               var repo = context.read<PaheRepo>();
+              var bboc = context.read<PaheBloc>();
               Navigator.of(context).push(MaterialPageRoute(
-                  builder: (context) => BlocProvider(
-                      create: (context) => AnimeBloc(repo: repo),
-                      child: AnimePage(pahe: widget.pahe))));
+                builder: (context) => MultiBlocProvider(providers: [
+                  BlocProvider(
+                    create: (context) => AnimeBloc(repo: repo),
+                  ),
+                  BlocProvider.value(value: bboc)
+                ], child: AnimePage(pahe: widget.pahe)),
+              ));
             },
             onHover: (value) {
               setState(() {

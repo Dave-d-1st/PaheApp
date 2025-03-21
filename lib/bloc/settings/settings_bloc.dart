@@ -23,14 +23,9 @@ class SettingsBloc extends Bloc<SettingsEvent,SettingsState>{
   }
 
   void _onfilePicked(FilePicked event, Emitter<SettingsState> emit)async{
-    if(Platform.isWindows){
-      String? result =await FilePicker.platform.getDirectoryPath(
-        dialogTitle: "Pick a Folder",
-        lockParentWindow: true
-      );
-      _setrepo.changeSPath(result??(await getApplicationDocumentsDirectory()).path);
+    
+      await _setrepo.changeSPath();
       emit(SettingsState(repo: _setrepo));
-    }
   }
 
   @override
