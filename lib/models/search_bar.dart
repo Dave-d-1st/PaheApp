@@ -5,6 +5,7 @@ import 'package:app/pages/anime_page.dart';
 import 'package:app/repository/pahe_repo.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
 
 class SearchDel extends SearchDelegate {
   final PaheBloc bloc;
@@ -43,9 +44,27 @@ class SearchDel extends SearchDelegate {
       builder: (context, state) {
         searchList.clear();
         if ((state.search ?? {}).isNotEmpty) {
+          if((state.search ?? {}).containsKey("Load")){
+            return ListView(
+          children: [ Padding(
+            padding: const EdgeInsets.all(3.0),
+            child: Center(child: CircularProgressIndicator()),
+          )]
+        );
+          }
+          if((state.search ?? {}).containsKey("Error")){
+            
+            return ListView(
+          children: [ Padding(
+            padding: const EdgeInsets.all(3.0),
+          child: Center(child: state.search?["Error"] is ClientException?Text("No Internet"):Text("${state.search?["Error"]}")),
+          )]
+        );
+          }
+
           for (var data in state.search?['data']) {
             Widget img =
-                CircleAvatar(foregroundImage: NetworkImage(data['poster']));
+                CircleAvatar(foregroundImage: NetworkImage(data['poster']),onForegroundImageError: (exception, stackTrace){},backgroundColor: Colors.grey,child: Icon(Icons.broken_image));
             Widget title = Text(
               data['title'],
               maxLines: 1,
@@ -101,7 +120,7 @@ class SearchDel extends SearchDelegate {
 
   @override
   Widget buildSuggestions(BuildContext context) {
-    return ListView.builder(
+return ListView.builder(
         itemCount: searchList.length,
         itemBuilder: (context, index) {
           return searchList[index];

@@ -6,12 +6,14 @@ class AniVideoState {
   String currentResolution;
   String videoUrl;
   String title;
-  String? previous;
-  String? next;
+  RealtiveVid? previous;
+  RealtiveVid? next;
   Duration? playTime;
+  Object? error;
   AniVideoState(
       {data,
-      this.status = PaheStatus.done
+      this.status = PaheStatus.done,
+      this.error
       }):
       title = data['title']??'',
       resolutions = data['res']??[],

@@ -15,7 +15,6 @@ class PaheBloc extends Bloc<PaheEvent,PaheState>{
     super(PaheState(repo: repo)){
       on<StartPage>(_pageStarted);
       on<GetSearch>(_searched);
-      on<Update>(_update);
     }
   
 
@@ -23,7 +22,10 @@ class PaheBloc extends Bloc<PaheEvent,PaheState>{
   final PaheRepo _paheRepo;
 
   Future<void> _searched(GetSearch event, Emitter<PaheState> emit) async{
+
     if(event.searchTerm.trim()!=""){
+      _paheRepo.startSearch();
+    emit(PaheState(repo: _paheRepo,status: PaheStatus.done));
     await _paheRepo.getSearch(event.searchTerm);
     emit(PaheState(repo: _paheRepo,status: PaheStatus.done));}
 
@@ -36,12 +38,13 @@ class PaheBloc extends Bloc<PaheEvent,PaheState>{
     {_paheRepo.clear();
     emit(PaheState(repo: _paheRepo));}
     await _paheRepo.getContent(currentPage);
-    currentPage+=1;
-    emit(PaheState(repo: _paheRepo,status: PaheStatus.done));
+    var error = _paheRepo.episodes.where((element) => element is!  Exception);
+    if(error.isEmpty){
+      emit(PaheState(repo: _paheRepo,status: PaheStatus.error));
+    }else{
+      if(_paheRepo.episodes.whereType<Exception>().isEmpty)currentPage+=1;
+      emit(PaheState(repo: _paheRepo,status: PaheStatus.done));
+    }
     working=false;}
   
-
-  FutureOr<void> _update(Update event, Emitter<PaheState> emit) {
-    emit(PaheState(repo: _paheRepo,status: PaheStatus.done));
-  }
 }

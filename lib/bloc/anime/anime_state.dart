@@ -10,6 +10,7 @@ class AnimeState {
   final List recommends;
   final PaheRepo repo;
   final Map relations;
+  final dynamic error;
   final List? episodes;
   final int? id;
   final String? session;
@@ -18,6 +19,7 @@ class AnimeState {
 
   AnimeState({required this.repo, this.status = PaheStatus.searching,this.episodes,this.id,this.session}) :
     soup = repo.soup,
+    error=repo.error,
     imageUrl = repo.soup.find('div', class_: "anime-poster")?.find('img')?['data-src']??'',
     imgHeight = repo.imgHeight,
     image = repo.image,

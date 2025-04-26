@@ -4,9 +4,10 @@ sealed class VideoEvent {}
 
 class StartVideo extends VideoEvent{
   String session;
-  StartVideo({required this.session});
+  String? title;
+  StartVideo({required this.session,this.title});
 }
-
+class Done extends VideoEvent{}
 class ChangeRes extends VideoEvent{
   String res;
   bool eng;

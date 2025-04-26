@@ -4,9 +4,6 @@ sealed class HomeEvent {
 
 }
 
-class GetHomeItems extends HomeEvent{
-
-}
 class AddHomeItem extends HomeEvent{
   final AnimeState state;
   AddHomeItem({required this.state});
@@ -14,4 +11,21 @@ class AddHomeItem extends HomeEvent{
 class SavedItem extends HomeEvent{
   final HomeItem item;
   SavedItem({required this.item});
+}
+
+class GetPlayTime extends HomeEvent{
+  final String episode;
+  GetPlayTime({required this.episode});
+}
+class Refresh extends HomeEvent{
+  final HomeItem item;
+  Refresh(this.item);
+}
+
+class Update extends HomeEvent{
+  
+}
+
+class Migrate extends HomeEvent{
+  
 }

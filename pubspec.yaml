@@ -7,59 +7,32 @@ environment:
   sdk: ^3.5.1
 
 dependencies:
+  beautiful_soup_dart: ^0.3.0
   flutter:
     sdk: flutter
-  file_picker: ^9.0.2
-  equatable: ^2.0.7
+  flutter_expandable_fab: ^2.3.0
+  http: ^1.2.2
+  media_kit:
+  media_kit_video:
+  media_kit_libs_video:
+  path_provider: ^2.1.5
+  provider: ^6.1.2
+  flutter_slidable: ^3.1.2
   bloc: ^9.0.0
   flutter_bloc: ^9.1.0
   hive: ^2.2.3
-  provider: ^6.1.2
-  path_provider: ^2.1.5
-  flutter_expandable_fab: ^2.3.0
-  http: ^1.2.2
-  beautiful_soup_dart: ^0.3.0
+  file_picker: ^9.0.2
+  equatable: ^2.0.7
   saf_util: ^0.7.0
   saf_stream: ^0.11.2
-  media_kit:
-    git:
-      url: https://github.com/media-kit/media-kit.git
-      ref: main
-      path: ./media_kit
-  media_kit_video:
-    git:
-      url: https://github.com/media-kit/media-kit.git
-      ref: main
-      path: ./media_kit_video
-  media_kit_libs_video:
-    git:
-      url: https://github.com/media-kit/media-kit.git
-      ref: main
-      path: ./libs/universal/media_kit_libs_video
+  dio: ^5.8.0+1
+  flutter_hls_parser: ^2.0.1
     
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-
-dependency_overrides:
-  media_kit:
-    git:
-      url: https://github.com/media-kit/media-kit.git
-      ref: main
-      path: ./media_kit
-  media_kit_video:
-    git:
-      url: https://github.com/media-kit/media-kit.git
-      ref: main
-      path: ./media_kit_video
-  media_kit_libs_video:
-    git:
-      url: https://github.com/media-kit/media-kit.git
-      ref: main
-      path: ./libs/universal/media_kit_libs_video
-
 
 flutter:
   uses-material-design: true

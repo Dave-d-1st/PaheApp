@@ -16,27 +16,17 @@ class PaheAdapter extends TypeAdapter<Pahe> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return Pahe();
+    return Pahe(
+      data: (fields[0] as Map).cast<dynamic, dynamic>(),
+    );
   }
 
   @override
   void write(BinaryWriter writer, Pahe obj) {
     writer
-      ..writeByte(7)
-      ..writeByte(0)
-      ..write(obj.title)
       ..writeByte(1)
-      ..write(obj.imageUrl)
-      ..writeByte(2)
-      ..write(obj.episode)
-      ..writeByte(3)
-      ..write(obj.id)
-      ..writeByte(4)
-      ..write(obj.animeSession)
-      ..writeByte(5)
-      ..write(obj.episodeSession)
-      ..writeByte(6)
-      ..write(obj.episode2);
+      ..writeByte(0)
+      ..write(obj.data);
   }
 
   @override

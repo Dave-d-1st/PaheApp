@@ -1,8 +1,6 @@
-import 'dart:ffi';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:app/bloc/anime/anime_bloc.dart';
 import 'package:hive/hive.dart';
 part 'home_item.g.dart';
 @HiveType(typeId: 0)
@@ -20,12 +18,18 @@ class HomeItem {
   @HiveField(5)
   final String imagePath;
   @HiveField(6)
-  final List episodes;
+  final int homeId;
   @HiveField(7)
+  final List episodes;
+  @HiveField(8)
   final double height;
+  @HiveField(9)
+  final String session;
   final Uint8List image;
   HomeItem({
     required this.title,
+    required this.homeId,
+    required this.session,
     required this.subtitle,
     required this.summary,
     required this.id,
@@ -35,12 +39,5 @@ class HomeItem {
     required this.height,
     }):
     image = File(imagePath).readAsBytesSync();
-    // title=state.title,
-    // subtitle=state.subtitle,
-    // summary=state.summary,
-    // recommends=state.recommends,
-    // relations=state.relations,
-    // id=state.id,
-    // imageUrl=state.imageUrl;
 
 }

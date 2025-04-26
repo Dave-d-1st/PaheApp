@@ -2,38 +2,62 @@ import 'dart:io';
 
 import 'package:app/bloc/pahe/pahe_bloc.dart';
 import 'package:app/bloc/video/video_bloc.dart';
+import 'package:app/models/realtive_vid.dart';
 import 'package:app/repository/video_repo.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:http/http.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
-class VideoPage extends StatelessWidget {
+class VideoPage extends StatefulWidget {
   final String session;
+  final String? title;
+
+  VideoPage({super.key, required this.session, this.title});
+
+  @override
+  State<VideoPage> createState() => _VideoPageState();
+}
+
+class _VideoPageState extends State<VideoPage> {
   Duration currentDur = Duration.zero;
-  VideoPage({super.key, required this.session});
+
+  late VideoBloc bloc;
   late final player = Player();
+
   late final controller = VideoController(player);
+  @override
+  void initState() {
+    bloc = context.read<VideoBloc>();
+    super.initState();
+  }
+
+  @override
+  void dispose()async {
+    bloc.add(Done());
+    super.dispose();
+    await player.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setPreferredOrientations(
-        [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-    VideoBloc bloc = context.read<VideoBloc>();
-    PaheBloc bblo = context.read<PaheBloc>();
-    bloc.add(StartVideo(session: session));
+    bloc = context.read<VideoBloc>();
+    if (!bloc.isClosed) {
+      bloc.add(StartVideo(
+        session: widget.session,
+        title: widget.title,
+      ));
+    }
     return BlocBuilder<VideoBloc, AniVideoState>(builder: (context, state) {
+      print(state.status);
       return Scaffold(
-          appBar: state.status == PaheStatus.searching
+          appBar: state.status == PaheStatus.searching ||
+                  state.status == PaheStatus.error
               ? AppBar(
                   leading: IconButton(
-                      onPressed: () async {
+                      onPressed: () {
                         Navigator.of(context).pop();
-                        SystemChrome.setPreferredOrientations(
-                            DeviceOrientation.values);
-                        await player.dispose();
                       },
                       icon: Icon(Icons.arrow_back)),
                 )
@@ -46,22 +70,42 @@ class VideoPage extends StatelessWidget {
                     child: CircularProgressIndicator(),
                   );
                 case PaheStatus.error:
-                  return Text("Error");
+                  return Center(
+                      child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(state.error is ClientException
+                          ? "No Internet"
+                          : "${state.error}"),
+                      FilledButton(
+                          onPressed: () => bloc.add(StartVideo(
+                                session: widget.session,
+                                title: widget.title,
+                              )),
+                          child: Text("Refresh"))
+                    ],
+                  ));
                 case PaheStatus.done:
-                  player.open(Media(state.videoUrl));
+                  print(state.title);
+                  player.open(Media(state.videoUrl,httpHeaders: {"user-agent": "Dart/3.7 (dart:io)"}));
+                  player.stream.error.listen((event) {
+                    print(event);
+                  },);
                   player.stream.bufferingPercentage.listen((value) {
                     if (player.state.position == Duration.zero &&
                         value == 100) {
                       if (state.title != '') {
                         player.seek(state.playTime ?? Duration.zero);
                         player.stream.position.listen((value) {
-                          if ((value - currentDur).inMilliseconds > 1000 &&
+                          if ((value - currentDur).abs() >
+                                  Duration(seconds: 1) &&
                               value.compareTo(Duration.zero) >= 0) {
-                            bblo.add(Update());
-                            bloc.add(PlayTime(
-                                episode: state.title,
-                                playTime: value,
-                                totalDur: player.state.duration));
+                            if (!bloc.isClosed) {
+                              bloc.add(PlayTime(
+                                  episode: state.title.trim(),
+                                  playTime: value,
+                                  totalDur: player.state.duration));
+                            }
                             currentDur = value;
                           }
                         });
@@ -70,7 +114,7 @@ class VideoPage extends StatelessWidget {
                   });
                   if (Platform.isWindows) {
                     var materialDesktopVideoControlsThemeData =
-                        getDesktopControls(context, state, bloc);
+                        getDesktopControls(context, bloc);
                     return MaterialDesktopVideoControlsTheme(
                       normal: materialDesktopVideoControlsThemeData,
                       fullscreen: materialDesktopVideoControlsThemeData,
@@ -110,32 +154,35 @@ class VideoPage extends StatelessWidget {
         topButtonBar: [
           MaterialCustomButton(
             onPressed: () async {
-              Navigator.of(context).pop();
-              try{
-              await player.dispose();}
-              catch(e){print(e);}
-              SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+              if (context.mounted) {
+                Navigator.of(context).pop();
+              }
             },
             icon: Icon(Icons.arrow_back),
           ),
           Spacer(),
-          Text(
-            state.title,
-            style: TextStyle(color: Colors.white, fontSize: 20),
+          Expanded(
+            flex: 5,
+            child: Center(
+              child: Text(
+                state.title,
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    overflow: TextOverflow.ellipsis),
+              ),
+            ),
           ),
           Spacer(),
           PopupMenuButton(
+            routeSettings: RouteSettings(name: "Popup"),
             itemBuilder: (context) {
               return [
                 for (String res in state.resolutions)
                   PopupMenuItem(
                     onTap: () {
-                      RegExp regExp = RegExp(r'\d+');
-                      Iterable<Match> matches = regExp.allMatches(res);
-                      String result =
-                          matches.map((match) => match.group(0)).join();
                       bloc.add(
-                          ChangeRes(res: result, eng: res.endsWith("eng")));
+                          ChangeRes(res: res, eng: res.endsWith("eng")));
                     },
                     child: Text(
                       res,
@@ -151,29 +198,25 @@ class VideoPage extends StatelessWidget {
         ],
         primaryButtonBar: [
           Spacer(),
-          state.previous is String
+          state.previous is RealtiveVid
               ? MaterialCustomButton(
                   onPressed: () async {
                     var repo = context.read<VideoRepo>();
-                    var bloc = context.read<PaheBloc>();
-                    Navigator.push(
+
+                    Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
+                            settings: RouteSettings(arguments: state.title),
                             builder: (context) => RepositoryProvider.value(
                                   value: repo,
-                                  child: MultiBlocProvider(
-                                    providers: [
-                                      BlocProvider(
-                                        create: (context) =>
-                                            VideoBloc(repo: repo),
-                                      ),
-                                      BlocProvider.value(value: bloc)
-                                    ],
+                                  child: BlocProvider(
+                                    create: (context) => VideoBloc(repo: repo),
                                     child: VideoPage(
-                                        session: state.previous ?? ''),
+                                      session: state.previous?.session ?? '',
+                                      title: state.previous?.title,
+                                    ),
                                   ),
                                 )));
-                    await player.dispose();
                   },
                   icon: Icon(
                     Icons.skip_previous,
@@ -186,27 +229,25 @@ class VideoPage extends StatelessWidget {
             iconSize: 48,
           ),
           Spacer(),
-          state.next is String
+          state.next is RealtiveVid
               ? MaterialCustomButton(
                   onPressed: () async {
                     var repo = context.read<VideoRepo>();
-                    var bloc = context.read<PaheBloc>();
-                    Navigator.push(
+
+                    Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
+                            settings: RouteSettings(arguments: state.title),
                             builder: (context) => RepositoryProvider.value(
-                                value: repo,
-                                child: MultiBlocProvider(
-                                  providers: [
-                                    BlocProvider(
-                                      create: (context) =>
-                                          VideoBloc(repo: repo),
+                                  value: repo,
+                                  child: BlocProvider(
+                                    create: (context) => VideoBloc(repo: repo),
+                                    child: VideoPage(
+                                      session: state.next?.session ?? '',
+                                      title: state.next?.title,
                                     ),
-                                    BlocProvider.value(value: bloc)
-                                  ],
-                                  child: VideoPage(session: state.next ?? ''),
-                                ))));
-                    await player.dispose();
+                                  ),
+                                )));
                   },
                   icon: Icon(
                     Icons.skip_next,
@@ -221,12 +262,12 @@ class VideoPage extends StatelessWidget {
   }
 
   MaterialDesktopVideoControlsThemeData getDesktopControls(
-      BuildContext context, AniVideoState state, VideoBloc bloc) {
+      BuildContext context, VideoBloc bloc) {
+    AniVideoState state = bloc.state;
     return MaterialDesktopVideoControlsThemeData(topButtonBar: [
       MaterialCustomButton(
-        onPressed: () async {
+        onPressed: () {
           Navigator.of(context).pop();
-          await player.dispose();
         },
         icon: Icon(Icons.arrow_back),
       ),
@@ -241,11 +282,13 @@ class VideoPage extends StatelessWidget {
           return [
             for (String res in state.resolutions)
               PopupMenuItem(
+                value: res,
                 onTap: () {
-                  RegExp regExp = RegExp(r'\d+');
-                  Iterable<Match> matches = regExp.allMatches(res);
-                  String result = matches.map((match) => match.group(0)).join();
-                  bloc.add(ChangeRes(res: result, eng: res.endsWith("eng")));
+
+                  bloc.add(ChangeRes(
+                    res: res,
+                    eng: res.endsWith("eng"),
+                  ));
                 },
                 child: Text(
                   res,
@@ -258,41 +301,48 @@ class VideoPage extends StatelessWidget {
         },
       )
     ], bottomButtonBar: [
-      state.previous is String
+      state.previous is RealtiveVid
           ? MaterialCustomButton(
               onPressed: () async {
                 var repo = context.read<VideoRepo>();
-                Navigator.push(
+
+                Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
+                        settings: RouteSettings(arguments: state.title),
                         builder: (context) => RepositoryProvider.value(
                               value: repo,
                               child: BlocProvider(
                                 create: (context) => VideoBloc(repo: repo),
-                                child: VideoPage(session: state.previous ?? ''),
+                                child: VideoPage(
+                                  session: state.previous?.session ?? '',
+                                  title: state.previous?.title,
+                                ),
                               ),
                             )));
-                await player.dispose();
               },
               icon: Icon(Icons.skip_previous),
             )
           : SizedBox(),
       MaterialPlayOrPauseButton(),
-      state.next is String
+      state.next is RealtiveVid
           ? MaterialCustomButton(
               onPressed: () async {
                 var repo = context.read<VideoRepo>();
-                Navigator.push(
+                Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
+                        settings: RouteSettings(arguments: state.title),
                         builder: (context) => RepositoryProvider.value(
                               value: repo,
                               child: BlocProvider(
                                 create: (context) => VideoBloc(repo: repo),
-                                child: VideoPage(session: state.next ?? ''),
+                                child: VideoPage(
+                                  session: state.next?.session ?? '',
+                                  title: state.next?.title,
+                                ),
                               ),
                             )));
-                await player.dispose();
               },
               icon: Icon(Icons.skip_next),
             )
